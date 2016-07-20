@@ -50,6 +50,7 @@ Sub BDEthroughI2C_HZ03()
     Next VBAT
     
     Call BDEthroughI2C_FormatSpreadsheet
+    Call PlotTOC
     
 End Sub
 
@@ -60,4 +61,10 @@ Private Sub BDEthroughI2C_FormatSpreadsheet()
     Cells(33, 2).value = "BDE Level and ADC Readback vs PVDD Voltage"
     Cells(33, 7).value = "PVDD VOLTAGE (V)"
     Cells(33, 11).value = "BDE Level or ADC Readback Value"
+End Sub
+
+Private Sub PlotTOC()
+    'awesome way to run macro
+    CommandBars("TOC Macros").Controls("Plot").Execute
+
 End Sub
