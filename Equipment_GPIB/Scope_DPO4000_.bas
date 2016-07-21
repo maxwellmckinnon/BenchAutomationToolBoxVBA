@@ -3,6 +3,8 @@ Option Explicit
 Option Base 0
 Option Compare Text
 Public Declare Sub Sleep Lib "kernel32.dll" (ByVal dwMilliseconds As Long)
+Private Declare PtrSafe Function URLDownloadToFileA Lib "urlmon" (ByVal pCaller As LongPtr, ByVal szURL As String, ByVal szFileName As String, ByVal dwReserved As LongPtr, ByVal lpfnCB As LongPtr) As LongPtr
+
 'This Module will Control the Agilent E3631A only.  This module requires that the Agilent IO Libraries Suite 16.3 be installed.
 '   You can download and install the VISA from following web site:
 '       http://www.home.agilent.com/en/pd-1985909-pn-E2094/io-libraries-suite-162?nid=-33330.977662.00&cc=US&lc=eng&cmpid=zzfindiosuite
@@ -45,9 +47,9 @@ Public Declare Sub Sleep Lib "kernel32.dll" (ByVal dwMilliseconds As Long)
 '                   Required, String, IP_Address = the Ip address for the given instrument that you want to control
 '                                           The address is from the scope it should be something like "10.33.89.208"
 '                   Required, String, Output_Name = This sets the range of the measurnemt.  The valid srtrings can be:
-'                                                   "On" = positive 6V output
-'                                                   "Off"  = positive 25V output
-'                                                   "Single" = negative 25V output
+'                                                   "On" = Run
+'                                                   "Off"  = Stop
+'                                                   "Single" = Single
 '
 '
 '
@@ -453,7 +455,7 @@ End Sub
 '       Arguments:  (Required/Optional, Data Type, Name = description)
 '                   Required, String, IP_Address = the Ip address for the given instrument that you want to control
 '                                           The address is from the scope it should be something like "10.33.89.208"
-'                   Required, Intiger, Meas_Number = This calls out the measuemnt number in which you want to configure.
+'                   Required, Intiger, Meas_Number = This calls out the measurement number in which you want to configure.
 '                                                   There are only 8 slots availbale.
 '                   Required, Double, Measure = This is sent by reference to return the string that is read from the equipment.
 '                                                   This argument has to be a variable.
@@ -463,6 +465,8 @@ End Sub
 '                                                   "MAXimum"
 '                                                   "MEAN"
 '                                                   "STDdev"
+'                                                   "Average"
+'                   Optional, Integer, Num_of_Average =  This controls the number of averages.  the default is 10
 '
 '
 '
@@ -471,17 +475,20 @@ End Sub
 '                           05-22-2014, Chris Sibley,   Original Version
 '
 Sub Scope_Get_Measurement(ByVal IP_Address As String, ByVal Meas_Number, _
-                            ByRef Measure As Double, Optional ByVal Type_ As String = "Value")
+                            ByRef Measure As Double, Optional ByVal Type_ As String = "Value", Optional ByVal Num_of_Average As Integer = 10)
     
     Dim ioMgr As VisaComLib.ResourceManager
     Dim instrument As VisaComLib.FormattedIO488
     Dim Error_Check As String
+    Dim RunningTotal As Double
+    Dim i As Double
     Set ioMgr = New VisaComLib.ResourceManager
 
     Set instrument = New VisaComLib.FormattedIO488
     Set instrument.IO = ioMgr.Open("TCPIP0::" & IP_Address & "::inst0::INSTR")
-
+    
     If Meas_Number > 0 And Meas_Number < 9 Then
+    
         
         Select Case Type_
             Case "MIMImum"
@@ -492,14 +499,28 @@ Sub Scope_Get_Measurement(ByVal IP_Address As String, ByVal Meas_Number, _
                 instrument.WriteString "MEASUrement:MEAS" & CStr(Meas_Number) & ":MEAN?"
             Case "STDdev"
                 instrument.WriteString "MEASUrement:MEAS" & CStr(Meas_Number) & ":STDdev?"
+            Case "Average"
+                RunningTotal = 0
+                For i = 1 To Num_of_Average
+                    instrument.WriteString "MEASUrement:MEAS" & CStr(Meas_Number) & ":VALue?"
+                    Call Sleep(200)
+                    RunningTotal = RunningTotal + CDbl(instrument.ReadString())
+                Next i
             Case Else
                 instrument.WriteString "MEASUrement:MEAS" & CStr(Meas_Number) & ":VALue?"
         End Select
-        Measure = CDbl(instrument.ReadString())
+         
+        If Type_ = "Average" Then
+            Measure = RunningTotal / Num_of_Average
+        Else
+            Measure = CDbl(instrument.ReadString())
+        End If
 
     End If
 
 End Sub
+
+
 
 
 '********************************************************************************************************************************************************
@@ -617,7 +638,7 @@ Sub Scope_Get_Trigger(ByVal IP_Address As String, _
                         ByRef Channel As Integer, _
                         ByRef Slope As String, _
                         ByRef Level_ As Double)
-    
+   
     Dim ioMgr As VisaComLib.ResourceManager
     Dim instrument As VisaComLib.FormattedIO488
     Dim Error_Check As String
@@ -722,6 +743,40 @@ Sub Scope_Save_Image(ByVal IP_Address As String, ByVal Folder As String, ByVal I
 End Sub
 
 
+
+'********************************************************************************************************************************************************
+' Sub Routine Scope_Save_Image_to_File
+'********************************************************************************************************************************************************
+'   This function will save an image of the oscilloscope screen (capture a scopeshot) to a local USB drive.  The user speficies the folder name for the file path.
+'   Image is saved as a .PNG file
+'
+'       Arguments:  (Required/Optional, Data Type, Name = description)
+'                   Required, String, IP_Address = Required, String, IP_Address = the Ip address for the given instrument that you want to control
+'                                                   The address is from the scope it should be something like "10.33.89.208"
+'                   Required, String, Folder = This sets the folder name in the file path for the image saved on the local USB drive.
+'                                                For example:  E:\Folder\Imagename
+'                   Required, String, Imagename = This sets the name of the image file to be saved on the local USB drive.
+'                                                For example:  E:\Folder\Imagename
+'
+'
+'
+'       Modification Log: (Date, By, Modification)
+'                           06-19-2014, Evan Ragsdale,   Original Version
+'
+Sub Scope_Save_Image_to_File(ByVal IP_Address As String, ByVal Folder As String, ByVal Imagename As String, Optional ByVal Scope_Port_int As Integer = 81)
+    
+    Dim lngRetVal As Long
+    Dim url As String
+    Dim LocalFilename As String
+    
+    url = "http://" & IP_Address & ":" & Scope_Port_int & "/image.png" ' Buil URL string
+    LocalFilename = Folder & "\" & Imagename & ".png"
+    
+    
+    lngRetVal = URLDownloadToFileA(0, url, LocalFilename, 0, 0)
+End Sub
+
+
 '********************************************************************************************************************************************************
 ' Sub Routine Scope_Make_Directory
 '********************************************************************************************************************************************************
@@ -748,6 +803,83 @@ Sub Scope_Make_Directory(ByVal IP_Address As String, ByVal Directory As String)
 
     instrument.WriteString "FILESystem:MKDir " & Chr(34) & "E:\" & Directory & Chr(34)
 
+End Sub
+
+'********************************************************************************************************************************************************
+' Sub Routine Scope_Set_MessageBox
+'********************************************************************************************************************************************************
+'   This sub routine loads the message box that can be displayed on the oscilloscope.
+'
+'       Arguments:  (Required/Optional, Data Type, Name = description)
+'                   Required, String, IP_Address = the Ip address for the given instrument that you want to control
+'                                           The address is from the scope it should be something like "10.33.89.208"
+'                   Required, String, Quote_ =  This will be the string that gets displayed on the screen of the oscilloscope.
+'
+'                   Optional, Boolean, On_Off = this will display the message box on the oscilloscope when true, else not (default)
+'
+'
+'
+'       Modification Log: (Date, By, Modification)
+'                           05-04-2016, Chris Sibley,   Original Version
+'
+Sub Scope_Set_MessageBox(ByVal IP_Address As String, ByRef Quote_ As String, Optional ByVal On_Off As Boolean = False)
+    
+    Dim ioMgr As VisaComLib.ResourceManager
+    Dim instrument As VisaComLib.FormattedIO488
+    Dim Error_Check As String
+    Dim Check As String
+    Set ioMgr = New VisaComLib.ResourceManager
+
+    Set instrument = New VisaComLib.FormattedIO488
+    Set instrument.IO = ioMgr.Open("TCPIP0::" & IP_Address & "::inst0::INSTR")
+
+    
+    instrument.WriteString "MESSage:SHOW """ & Quote_ & """"
+       
+    If On_Off = True Then
+        instrument.WriteString "MESSage:STATE ON"
+    Else
+        instrument.WriteString "MESSage:STATE OFF"
+    End If
+    
+End Sub
+
+
+'********************************************************************************************************************************************************
+' Sub Routine Scope_Clear_MessageBox
+'********************************************************************************************************************************************************
+'   This sub routine Configure clears the Message box that can be displayed on the screen.
+'
+'       Arguments:  (Required/Optional, Data Type, Name = description)
+'                   Required, String, IP_Address = the Ip address for the given instrument that you want to control
+'                                           The address is from the scope it should be something like "10.33.89.208"
+'                   Optional, Boolean, On_Off = this will display the message box on the oscilloscope when true, else not (default)
+'
+'
+'
+'       Modification Log: (Date, By, Modification)
+'                           05-04-2016, Chris Sibley,   Original Version
+'
+Sub Scope_Clear_MessageBox(ByVal IP_Address As String, Optional ByVal On_Off As Boolean = False)
+    
+    Dim ioMgr As VisaComLib.ResourceManager
+    Dim instrument As VisaComLib.FormattedIO488
+    Dim Error_Check As String
+    Dim Check As String
+    Set ioMgr = New VisaComLib.ResourceManager
+
+    Set instrument = New VisaComLib.FormattedIO488
+    Set instrument.IO = ioMgr.Open("TCPIP0::" & IP_Address & "::inst0::INSTR")
+
+    
+    instrument.WriteString "MESSage:CLEAR"
+       
+    If On_Off = True Then
+        instrument.WriteString "MESSage:STATE ON"
+    Else
+        instrument.WriteString "MESSage:STATE OFF"
+    End If
+    
 End Sub
 
 
@@ -820,7 +952,73 @@ Sub Scope_No_Return_Template(ByVal IP_Address As String, ByVal State As String, 
 
 End Sub
 
+Private Sub test_string()
+        Dim a As String
+        Dim Quote_ As String
+        Quote_ = "PVDD = 10V"
+        a = Chr(34) & "10.33.89.115"
+        
+        MsgBox a
+        a = "MESSage:SHOW """ & Quote_ & """"
+        
+        MsgBox a
+End Sub
+Private Sub test_Scope_Set_MessageBox()
 
 
+    Call Scope_Set_MessageBox("10.33.89.193", "PVDD = 10V", True)
+    
+End Sub
+
+
+Private Sub test_Scope_Clear_MessageBox()
+
+
+    Call Scope_Clear_MessageBox("10.33.89.193", True)
+    
+End Sub
+
+
+Private Sub Test_Scope_Save_Image_to_File()
+    Dim scope_add As String
+    Dim Pix_filename As String
+    Dim pix_path As String
+    
+    scope_add = "10.33.89.193"
+    Pix_filename = "pix2"
+    pix_path = ActiveWorkbook.Path
+    
+    Call Scope_Save_Image_to_File(scope_add, pix_path, Pix_filename)
+End Sub
+
+
+
+
+
+'Private Sub test()
+'Dim scope_add As String: scope_add = "10.33.89.89"
+'Dim scope_port As Integer: scope_port = 81
+'Dim Pix_filename As String: Pix_filename = "c:\temp\pix1.png"
+'
+'Call DownloadFile(scope_add, scope_port, Pix_filename)
+'
+'End Sub
+'
+'Public Function DownloadFile(scope_add As String, scope_port As Integer, Pix_filename As String) As Boolean
+'Dim lngRetVal As Long
+'Dim url As String
+'Dim LocalFilename As String
+'
+'url = "http://" & scope_add & ":" & scope_port & "/image.png" ' Buil URL string
+'LocalFilename = Pix_filename
+'
+'
+'lngRetVal = URLDownloadToFileA(0, url, LocalFilename, 0, 0)
+''If lngRetVal = 0 Then
+''    If Dir(LocalFilename) <> vbNullString Then
+''        DownloadFile = True
+''    End If
+''End If
+'End Function
 
 
