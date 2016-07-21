@@ -47,7 +47,7 @@ Option Compare Text
 '       Modification Log: (Date, By, Modification)
 '                           04-25-2014, Chris Sibley,   Original Version
 '
-Function Func_Gen_Set_Output(ByVal GPIB_Address As String, ByVal Voltage_High As Double, Optional ByVal Voltage_Low As Double = 0) As String
+Function Func_Gen_Set_Output(ByVal GPIB_Address As String, ByVal Voltage_High As String, Optional ByVal Voltage_Low As Double = 0) As String
     
     Dim ioMgr As VisaComLib.ResourceManager
     Dim instrument As VisaComLib.FormattedIO488
@@ -112,6 +112,129 @@ Function Func_Gen_Enable_Output(ByVal GPIB_Address As String, ByVal State_str As
 End Function
 
 
+'********************************************************************************************************************************************************
+' Function Func_Trigger_Output
+'********************************************************************************************************************************************************
+'   This function will set the voltage to the given output.
+'
+'       Arguments:  (Required/Optional, Data Type, Name = description)
+'                   Required, String, GPIB_Address = the GPIB address for the given instrument that you want to control
+'                                           The address is ranged between "GPIB::00" to "GPIB::31"
+'                   Required, String, Output_Name = This sets the range of the measurnemt.  The valid srtrings can be:
+'                                                   "On" = Turn output on
+'                                                   "Off"  = Turn output off
+'
+'
+'
+'       Modification Log: (Date, By, Modification)
+'                           07-06-2015, Chris Sibley,   Original Version
+'
+Function Func_Trigger_Output(ByVal GPIB_Address As String) As String
+    
+    Dim ioMgr As VisaComLib.ResourceManager
+    Dim instrument As VisaComLib.FormattedIO488
+    Dim Error_Check As String
+    Set ioMgr = New VisaComLib.ResourceManager
+
+    Set instrument = New VisaComLib.FormattedIO488
+    Set instrument.IO = ioMgr.Open(GPIB_Address)
+
+    instrument.WriteString "TRIGGer"
+    
+
+    Error_Check = Error_Checker(GPIB_Address)
+
+    If Left(Error_Check, 2) = "+0" Then
+        Func_Trigger_Output = "All Good"
+    Else
+        Func_Trigger_Output = Error_Check
+    End If
+
+End Function
+
+
+
+'********************************************************************************************************************************************************
+' Function Func_Trigger_Output
+'********************************************************************************************************************************************************
+'   This function will set the voltage to the given output.
+'
+'       Arguments:  (Required/Optional, Data Type, Name = description)
+'                   Required, String, GPIB_Address = the GPIB address for the given instrument that you want to control
+'                                           The address is ranged between "GPIB::00" to "GPIB::31"
+'                   Required, Double, Frequency_dbl = Frequency
+'
+'
+'
+'       Modification Log: (Date, By, Modification)
+'                           10-02-2015, Chris Sibley,   Original Version
+'
+Function Func_Set_Frequency(ByVal GPIB_Address As String, ByVal Frequency_dbl As Double) As String
+    
+    Dim ioMgr As VisaComLib.ResourceManager
+    Dim instrument As VisaComLib.FormattedIO488
+    Dim Error_Check As String
+    Set ioMgr = New VisaComLib.ResourceManager
+
+    Set instrument = New VisaComLib.FormattedIO488
+    Set instrument.IO = ioMgr.Open(GPIB_Address)
+
+    instrument.WriteString "FREQuency " & CStr(Frequency_dbl)
+    
+
+    Error_Check = Error_Checker(GPIB_Address)
+
+    If Left(Error_Check, 2) = "+0" Then
+        Func_Set_Frequency = "All Good"
+    Else
+        Func_Set_Frequency = Error_Check
+    End If
+
+End Function
+
+
+
+'********************************************************************************************************************************************************
+' Function Func_Gen_Set_Output_Phase
+'********************************************************************************************************************************************************
+'   This function will set the voltage levels for the output signal.
+'
+'       Arguments:  (Required/Optional, Data Type, Name = description)
+'                   Required, String, GPIB_Address = the GPIB address for the given instrument that you want to control
+'                                           The address is ranged between "GPIB::00" to "GPIB::31"
+'
+'                   Required, Double, Voltage_High = This sets the higher level of the signal.
+'
+'                   Optional, Double, Voltage_Low = This sets the lower level of the signal
+'
+'
+'
+'       Modification Log: (Date, By, Modification)
+'                           04-25-2014, Chris Sibley,   Original Version
+'
+Function Func_Gen_Set_Output_Phase(ByVal GPIB_Address As String, ByVal Phase_bdl As Double) As String
+    
+    Dim ioMgr As VisaComLib.ResourceManager
+    Dim instrument As VisaComLib.FormattedIO488
+    Dim Error_Check As String
+    Set ioMgr = New VisaComLib.ResourceManager
+
+    Set instrument = New VisaComLib.FormattedIO488
+    Set instrument.IO = ioMgr.Open(GPIB_Address)
+
+    instrument.WriteString "PHAse " & CStr(Phase_bdl)
+
+    Error_Check = Error_Checker(GPIB_Address)
+
+    If Left(Error_Check, 2) = "+0" Then
+        Func_Gen_Set_Output_Phase = "All Good"
+    Else
+        Func_Gen_Set_Output_Phase = Error_Check
+    End If
+
+End Function
+
+
 Private Function Error_Checker(ByVal GPIB_Address As String) As String
     
     Dim ioMgr As VisaComLib.ResourceManager
@@ -129,9 +252,9 @@ Private Function Error_Checker(ByVal GPIB_Address As String) As String
     Error_Checker = Reply
 End Function
 
-Private Sub Test_Func_Gen_Set_Output()
+Private Sub Test_Func_Trigger_Output()
 
-    Call Func_Gen_Enable_Output("GPIB::16", "On")
+    Call Func_Trigger_Output("GPIB::25")
     
 End Sub
 
