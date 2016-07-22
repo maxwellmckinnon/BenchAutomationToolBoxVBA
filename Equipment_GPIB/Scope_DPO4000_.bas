@@ -769,13 +769,12 @@ Sub Scope_Save_Image_to_File(ByVal IP_Address As String, ByVal Folder As String,
     Dim url As String
     Dim LocalFilename As String
     
-    url = "http://" & IP_Address & ":" & Scope_Port_int & "/image.png" ' Buil URL string
+    url = "http://" & IP_Address & ":" & Scope_Port_int & "/image.png" ' Build URL string
     LocalFilename = Folder & "\" & Imagename & ".png"
     
     
     lngRetVal = URLDownloadToFileA(0, url, LocalFilename, 0, 0)
 End Sub
-
 
 '********************************************************************************************************************************************************
 ' Sub Routine Scope_Make_Directory
@@ -990,9 +989,6 @@ Private Sub Test_Scope_Save_Image_to_File()
     
     Call Scope_Save_Image_to_File(scope_add, pix_path, Pix_filename)
 End Sub
-
-
-
 
 
 'Private Sub test()
