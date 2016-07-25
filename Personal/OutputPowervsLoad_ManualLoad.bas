@@ -2,6 +2,7 @@ Attribute VB_Name = "OutputPowervsLoad_ManualLoad"
 Sub OutputPowerVsLoad_ManualLoad()
     'Run at 1% THDN and 10% THDN, VBAT 3.7V PVDD 8V, VBAT 4.3V PVDD 10V, sweep load from 3ohm to 100ohm + 33uH
     'Program will prompt user to switch loads
+    'Note: excel crashed and didn't save latest version. May need slight editing to data output if run again
     
     epsilon = 2 ' Error if more than 2dB off in THDN
     MAX_RETRIES = 3
@@ -45,10 +46,8 @@ Sub OutputPowerVsLoad_ManualLoad()
             ActiveWorkbook.Save
             For t = 0 To 1 'Each thdnlev In THDNLEVELS
                 DoEvents
-                Sheets.Add
                 thdnlevel = THDNLEVELS(t)
-                ActiveSheet.Name = ActiveSheet.Name & " " & Str(thdnlevel) & " " & Str(VBAT) & " " & Str(PVDD)
-                
+
                 ''''BEGIN THDN REGULATION''''
                 retryCount = 0
                 Do
