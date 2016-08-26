@@ -638,7 +638,7 @@ Sub Scope_Get_Trigger(ByVal IP_Address As String, _
                         ByRef Channel As Integer, _
                         ByRef Slope As String, _
                         ByRef Level_ As Double)
-   
+    
     Dim ioMgr As VisaComLib.ResourceManager
     Dim instrument As VisaComLib.FormattedIO488
     Dim Error_Check As String
@@ -769,12 +769,13 @@ Sub Scope_Save_Image_to_File(ByVal IP_Address As String, ByVal Folder As String,
     Dim url As String
     Dim LocalFilename As String
     
-    url = "http://" & IP_Address & ":" & Scope_Port_int & "/image.png" ' Build URL string
+    url = "http://" & IP_Address & ":" & Scope_Port_int & "/image.png" ' Buil URL string
     LocalFilename = Folder & "\" & Imagename & ".png"
     
     
     lngRetVal = URLDownloadToFileA(0, url, LocalFilename, 0, 0)
 End Sub
+
 
 '********************************************************************************************************************************************************
 ' Sub Routine Scope_Make_Directory
@@ -991,6 +992,9 @@ Private Sub Test_Scope_Save_Image_to_File()
 End Sub
 
 
+
+
+
 'Private Sub test()
 'Dim scope_add As String: scope_add = "10.33.89.89"
 'Dim scope_port As Integer: scope_port = 81
@@ -1016,5 +1020,4 @@ End Sub
 ''    End If
 ''End If
 'End Function
-
 
