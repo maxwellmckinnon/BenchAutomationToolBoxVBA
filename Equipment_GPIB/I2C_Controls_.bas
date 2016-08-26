@@ -117,14 +117,14 @@ Private Function I2C_8Bit_Read_Control(ByVal Device_Address As Byte, ByVal Addr_
 End Function
 
 
-Private Function I2C_16Bit_Write_Control(ByVal Device_Address As Byte, ByVal HAddr_Byte As Byte, ByVal LAddr_Byte As Byte, ByVal Data_byte As Byte) As Boolean
+Private Function I2C_16Bit_Write_Control(ByVal HAddr_Byte As Byte, ByVal LAddr_Byte As Byte, ByVal Data_byte As Byte) As Boolean
 ' Written By: Chris Sibley
 ' Last modifide: 9/10/2012 - Created
 '
 ' Purpose: This block connects to the command module on the evaluation kit
 '
 '   Variable Delcaration
-    Dim Data_byt(2) As Byte             ' array that contains the register address and data byte
+    Dim test As Byte             ' array that contains the register address and data byte
     Dim Receive_Data_byt As Byte        ' Dummy variable
     Dim Results As Boolean
     
