@@ -638,7 +638,7 @@ Sub Scope_Get_Trigger(ByVal IP_Address As String, _
                         ByRef Channel As Integer, _
                         ByRef Slope As String, _
                         ByRef Level_ As Double)
-   
+    
     Dim ioMgr As VisaComLib.ResourceManager
     Dim instrument As VisaComLib.FormattedIO488
     Dim Error_Check As String
